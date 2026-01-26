@@ -2,16 +2,20 @@ mod fft;
 mod field;
 mod lagrange;
 mod poly;
-use std::time::Instant;
+mod gpu;
 
-use crate::fft::fft_multiply;
+use std::time::Instant;
 use crate::field::Fe;
 use crate::lagrange::{generate_vanishing_polynomial, lagrange_interpolate, Point};
+use crate::fft::fft_multiply;
 use crate::poly::{generate_random_polynomial, sum_poly};
+use crate::gpu::{CudaContext, gpu_generate_vanishing};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let ctx = CudaContext::new()?;
+
     let file = File::open("input.txt")?;
     let mut reader = BufReader::new(file);
 
@@ -23,6 +27,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let final_degree: u32 = iter.next().unwrap().parse()?;
 
     let mut points = Vec::new();
+    let mut points_x = Vec::new();
+    //let mut points_y = Vec::new();
 
     for _ in 0..n_points {
         input.clear();
@@ -31,10 +37,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let x: Fe = iter.next().unwrap().parse()?;
         let y: Fe = iter.next().unwrap().parse()?;
         points.push(Point { x: x, y: y });
+        points_x.push(x);
+        //points_y.push(y);
     }
 
     let start = Instant::now();
-    let vanishing = generate_vanishing_polynomial(&points);
+    //let vanishing_seq = generate_vanishing_polynomial(&points);
+    let vanishing = gpu_generate_vanishing(&ctx, &points_x).expect("Failed to generate vanishing polynomial on GPU");
     println!("generate_vanishing_polynomial: {:?}", start.elapsed());
 
     let start = Instant::now();

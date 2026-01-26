@@ -51,6 +51,12 @@ __device__ __forceinline__ uint32_t fe_sub(uint32_t a, uint32_t b) {
     return (uint32_t)x;
 }
 
+__device__ __forceinline__ uint32_t fe_neg(uint32_t a) {
+    uint64_t x = (uint64_t)P - a;
+    if (x >= P) x -= P;
+    return (uint32_t)x;
+}
+
 __device__ uint32_t fe_inv(uint32_t a) {
     uint32_t result = 1;
     uint32_t base = a;
