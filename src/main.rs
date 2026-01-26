@@ -34,7 +34,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let start = Instant::now();
-    let poly1 = lagrange_interpolate(&points);
+    let vanishing = generate_vanishing_polynomial(&points);
+    println!("generate_vanishing_polynomial: {:?}", start.elapsed());
+
+    let start = Instant::now();
+    let poly1 = lagrange_interpolate(&points, &vanishing);
     let poly1_degree = points.len() - 1;
     println!("Lagrang interpolate: {:?}", start.elapsed());
 
@@ -42,10 +46,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let start = Instant::now();
     let poly2 = generate_random_polynomial(final_degree - poly1_degree as u32 - 1);
     println!("Generate random polynomial: {:?}", start.elapsed());
-
-    let start = Instant::now();
-    let vanishing = generate_vanishing_polynomial(&points);
-    println!("generate_vanishing_polynomial: {:?}", start.elapsed());
 
     let start = Instant::now();
     let extended_poly = fft_multiply(poly2, vanishing);

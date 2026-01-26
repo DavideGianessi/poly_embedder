@@ -14,16 +14,13 @@ pub fn generate_vanishing_polynomial(points: &Vec<Point>) -> Vec<Fe> {
     px
 }
 
-pub fn lagrange_interpolate(points: &Vec<Point>) -> Vec<Fe> {
+pub fn lagrange_interpolate(points: &Vec<Point>, vanishing: &Vec<Fe>) -> Vec<Fe> {
     let n = points.len();
     if n == 0 {
         return vec![];
     }
 
-    let mut px = vec![Fe::from(1u8)];
-    for point in points {
-        px = multiply_by_linear(&px, point.x);
-    }
+    let px = vanishing;
 
     let mut result = vec![Fe::from(0u8); n];
 
@@ -36,7 +33,7 @@ pub fn lagrange_interpolate(points: &Vec<Point>) -> Vec<Fe> {
             }
         }
         let weight = mult(points[i].y, modular_inverse(denom));
-        let basis = divide_by_linear(&px, points[i].x);
+        let basis = divide_by_linear(px, points[i].x);
         for j in 0..basis.len() {
             let scaled = mult(basis[j], weight);
             result[j] = add(result[j], scaled);
