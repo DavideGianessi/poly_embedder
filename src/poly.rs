@@ -1,6 +1,5 @@
 use crate::field::{add, generate_random_element, Fe};
 
-
 pub fn sum_poly(poly1: &Vec<Fe>, poly2: &Vec<Fe>) -> Vec<Fe> {
     let final_length = poly1.len().max(poly2.len());
     let mut res = vec![Fe::from(0u8); final_length];
