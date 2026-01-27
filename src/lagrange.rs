@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::field::{add, modular_inverse, mult, sub, Fe};
 
 #[derive(Clone, Copy, Debug)]

@@ -8,16 +8,14 @@ use rustacuda::memory::DeviceSlice;
 
 pub fn gpu_generate_vanishing(
     ctx: &CudaContext,
-    points_x: &[Fe],
-) -> Result<Vec<Fe>, Box<dyn std::error::Error>> {
-    let n_original = points_x.len();
-    
+    d_points_x: &mut DeviceBuffer<Fe>,
+) -> Result<DeviceBuffer<Fe>, Box<dyn std::error::Error>> {
+    let n_original = d_points_x.len();
     let n_padded = n_original.next_power_of_two();
     let log_n = n_padded.trailing_zeros();
 
 
     unsafe {
-        let mut d_points_x = DeviceBuffer::<Fe>::from_slice(points_x)?;
         let mut d_buf_a = DeviceBuffer::<Fe>::uninitialized(2 * n_padded)?;
         let mut d_buf_b = DeviceBuffer::<Fe>::uninitialized(2 * n_padded)?;
 
@@ -48,19 +46,14 @@ pub fn gpu_generate_vanishing(
                 dst_ptr,
                 level as i32
             ))?;
-
             std::mem::swap(&mut src_ptr, &mut dst_ptr);
         }
 
         ctx.synchronize()?;
 
-        let mut result = vec![Fe::from(0u32); n_original + 1];
-        
-        if log_n % 2 == 0 {
-            d_buf_a[..n_original + 1].copy_to(&mut result)?;
-        } else {
-            d_buf_b[..n_original + 1].copy_to(&mut result)?;
-        }
+        let mut result = DeviceBuffer::<Fe>::uninitialized(n_original + 1)?;
+        let result_view = DeviceSlice::from_raw_parts(src_ptr, n_original + 1);
+        result.copy_from(result_view)?;
 
         Ok(result)
     }

@@ -6,10 +6,11 @@ mod gpu;
 
 use std::time::Instant;
 use crate::field::Fe;
-use crate::lagrange::{generate_vanishing_polynomial, lagrange_interpolate, Point};
+use crate::lagrange::{/*generate_vanishing_polynomial, lagrange_interpolate,*/ Point};
 use crate::fft::fft_multiply;
 use crate::poly::{generate_random_polynomial, sum_poly};
-use crate::gpu::{CudaContext, gpu_generate_vanishing};
+use crate::gpu::{CudaContext, gpu_generate_vanishing, gpu_lagrange_interpolate};
+use rustacuda::memory::{DeviceBuffer,CopyDestination};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 
@@ -28,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut points = Vec::new();
     let mut points_x = Vec::new();
-    //let mut points_y = Vec::new();
+    let mut points_y = Vec::new();
 
     for _ in 0..n_points {
         input.clear();
@@ -38,18 +39,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let y: Fe = iter.next().unwrap().parse()?;
         points.push(Point { x: x, y: y });
         points_x.push(x);
-        //points_y.push(y);
+        points_y.push(y);
     }
+    let start = Instant::now();
+    let mut d_points_x = DeviceBuffer::from_slice(&points_x)?;
+    let mut d_points_y = DeviceBuffer::from_slice(&points_y)?;
+    println!("moving points to gpu memory: {:?}", start.elapsed());
 
     let start = Instant::now();
-    //let vanishing_seq = generate_vanishing_polynomial(&points);
-    let vanishing = gpu_generate_vanishing(&ctx, &points_x).expect("Failed to generate vanishing polynomial on GPU");
+    let mut d_vanishing = gpu_generate_vanishing(&ctx, &mut d_points_x).expect("Failed to generate vanishing polynomial on GPU");
     println!("generate_vanishing_polynomial: {:?}", start.elapsed());
 
+
     let start = Instant::now();
-    let poly1 = lagrange_interpolate(&points, &vanishing);
+    let points_per_thread = 8;
+    let d_poly1 = gpu_lagrange_interpolate(&ctx,  &mut d_points_x, &mut d_points_y, &mut d_vanishing, n_points as usize, points_per_thread)?;
     let poly1_degree = points.len() - 1;
     println!("Lagrang interpolate: {:?}", start.elapsed());
+
+    let vanishing = {
+        ctx.synchronize()?;
+        let mut v = vec![Fe::from(0u32); n_points as usize + 1];
+        d_vanishing.copy_to(&mut v)?;
+        v
+    };
+    let poly1 = {
+        ctx.synchronize()?;
+        let mut v = vec![Fe::from(0u32); n_points as usize];
+        d_poly1.copy_to(&mut v)?;
+        v
+    };
 
 
     let start = Instant::now();

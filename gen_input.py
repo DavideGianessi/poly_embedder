@@ -12,10 +12,9 @@ def generate_input_file(num_points, degree):
     if degree < 0:
         print(f"Error: Degree must be non-negative, got {degree}")
         return False
-    if num_points < degree + 1:
-        print(f"Warning: With only {num_points} points, a polynomial of degree {degree}")
-        print(f"         may not be uniquely determined (need at least {degree+1} points).")
-        print("         Continuing anyway...")
+    if num_points > degree + 1:
+        print(f"Error: A polynomial of degree {degree} passing for all {num_points} points is not guaranteed to exist")
+        return False
     x_values = set()
     max_attempts = num_points * 10  # Safety limit
     attempts = 0
