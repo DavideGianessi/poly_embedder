@@ -9,6 +9,7 @@ use crate::lagrange::{generate_vanishing_polynomial, lagrange_interpolate, Point
 use crate::poly::{generate_random_polynomial, sum_poly};
 use std::io::{BufRead, BufReader, Write};
 use std::fs::File;
+use std::time::Instant;
 
 
 
@@ -34,17 +35,26 @@ fn main()-> Result<(), Box<dyn std::error::Error>> {
         points.push(Point { x: x, y: y });
     }
 
+    let start = Instant::now();
     let vanishing = generate_vanishing_polynomial(&points);
+    println!("generate_vanishing_polynomial: {:?}", start.elapsed());
 
+    let start = Instant::now();
     let poly1 = lagrange_interpolate(&vanishing, &points);
-
     let poly1_degree = points.len() - 1;
+    println!("Lagrang interpolate: {:?}", start.elapsed());
 
+    let start = Instant::now();
     let poly2 = generate_random_polynomial(final_degree - poly1_degree as u32 - 1);
+    println!("Generate random polynomial: {:?}", start.elapsed());
 
+    let start = Instant::now();
     let extended_poly = fft_multiply(poly2, vanishing);
+    println!("fft multiply: {:?}", start.elapsed());
 
+    let start = Instant::now();
     let final_poly = sum_poly(&extended_poly, &poly1);
+    println!("final sum: {:?}", start.elapsed());
 
 
 
