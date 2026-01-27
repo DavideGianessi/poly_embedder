@@ -1,3 +1,4 @@
+#![allow(unused)]
 use rand::rngs::OsRng;
 use rand::RngCore;
 

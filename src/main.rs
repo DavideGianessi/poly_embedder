@@ -1,13 +1,8 @@
-//mod fft;
 mod field;
-mod lagrange;
-//mod poly;
 mod gpu;
 
 use std::time::Instant;
 use crate::field::Fe;
-use crate::lagrange::{Point};
-//use crate::poly::{generate_random_polynomial};
 use crate::gpu::{CudaContext, gpu_generate_vanishing, gpu_lagrange_interpolate, gpu_fft_multiply, gpu_sum_polynomials, gpu_generate_random_polynomial};
 use rustacuda::memory::{DeviceBuffer,CopyDestination};
 use std::fs::File;
@@ -26,7 +21,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let n_points: u32 = iter.next().unwrap().parse()?;
     let final_degree: u32 = iter.next().unwrap().parse()?;
 
-    let mut points = Vec::new();
     let mut points_x = Vec::new();
     let mut points_y = Vec::new();
 
@@ -36,7 +30,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut iter = input.split_whitespace();
         let x: Fe = iter.next().unwrap().parse()?;
         let y: Fe = iter.next().unwrap().parse()?;
-        points.push(Point { x: x, y: y });
         points_x.push(x);
         points_y.push(y);
     }
@@ -52,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let start = Instant::now();
     let points_per_thread = 8;
     let mut d_poly1 = gpu_lagrange_interpolate(&ctx,  &mut d_points_x, &mut d_points_y, &mut d_vanishing, n_points as usize, points_per_thread)?;
-    let poly1_degree = points.len() - 1;
+    let poly1_degree = points_x.len() - 1;
     println!("Lagrang interpolate: {:?}", start.elapsed());
 
     let start = Instant::now();
