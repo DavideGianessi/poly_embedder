@@ -14,16 +14,13 @@ pub fn generate_vanishing_polynomial(points: &Vec<Point>) -> Vec<Fe> {
     px
 }
 
-pub fn lagrange_interpolate(points: &Vec<Point>) -> Vec<Fe> {
+pub fn lagrange_interpolate(vanishing: &Vec<Fe>,points: &Vec<Point>) -> Vec<Fe> {
     let n = points.len();
     if n == 0 {
         return vec![];
     }
 
-    let mut px = vec![Fe::from(1u8)];
-    for point in points {
-        px = multiply_by_linear(&px, point.x);
-    }
+    let px = vanishing;
 
     let mut result = vec![Fe::from(0u8); n];
 

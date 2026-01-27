@@ -34,13 +34,13 @@ fn main()-> Result<(), Box<dyn std::error::Error>> {
         points.push(Point { x: x, y: y });
     }
 
-    let poly1 = lagrange_interpolate(&points);
+    let vanishing = generate_vanishing_polynomial(&points);
+
+    let poly1 = lagrange_interpolate(&vanishing, &points);
 
     let poly1_degree = points.len() - 1;
 
     let poly2 = generate_random_polynomial(final_degree - poly1_degree as u32 - 1);
-
-    let vanishing = generate_vanishing_polynomial(&points);
 
     let extended_poly = fft_multiply(poly2, vanishing);
 
