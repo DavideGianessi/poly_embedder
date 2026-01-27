@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::field::{add, generate_random_element, Fe};
 
 pub fn sum_poly(poly1: &Vec<Fe>, poly2: &Vec<Fe>) -> Vec<Fe> {

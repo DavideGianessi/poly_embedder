@@ -55,7 +55,7 @@ pub fn sub(a: Fe, b: Fe) -> Fe {
     x as Fe
 }
 
-pub fn generate_random_element() -> Fe {
+pub fn _generate_random_element() -> Fe {
     loop {
         let mut buf = [0u8; std::mem::size_of::<Fe>()];
         OsRng.fill_bytes(&mut buf);

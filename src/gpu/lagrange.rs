@@ -3,7 +3,6 @@ use rustacuda::memory::DeviceBuffer;
 use std::ffi::CStr;
 use crate::gpu::context::CudaContext;
 use crate::field::Fe;
-use rustacuda::memory::CopyDestination;
 
 pub fn gpu_lagrange_interpolate(
     ctx: &CudaContext,

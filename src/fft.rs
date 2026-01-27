@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::field::{add, mult, sub, Fe, GENS, IGENS, N_INVS};
 
 fn ntt(poly: &mut Vec<Fe>, order: u32, gens: &[Fe; 25]) {
