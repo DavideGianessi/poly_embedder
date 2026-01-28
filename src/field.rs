@@ -1,4 +1,3 @@
-use rand::rngs::OsRng;
 use rand::RngCore;
 
 pub type Fe = u32;
@@ -43,7 +42,7 @@ pub fn sub(a: Fe, b: Fe) -> Fe {
 pub fn generate_random_element() -> Fe {
     loop {
         let mut buf = [0u8; std::mem::size_of::<Fe>()];
-        OsRng.fill_bytes(&mut buf);
+        rand::thread_rng().fill_bytes(&mut buf);
         let num = Fe::from_le_bytes(buf);
         if num < Fe::MAX - (Fe::MAX % P) {
             return num % P;
