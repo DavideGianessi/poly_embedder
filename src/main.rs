@@ -40,13 +40,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let start = Instant::now();
     let mut d_vanishing = gpu_generate_vanishing(&ctx, &mut d_points_x).expect("Failed to generate vanishing polynomial on GPU");
-    println!("generate_vanishing_polynomial: {:?}", start.elapsed());
+    println!("generate vanishing polynomial: {:?}", start.elapsed());
 
     let start = Instant::now();
     let points_per_thread = 16;
     let mut d_poly1 = gpu_lagrange_interpolate(&ctx,  &mut d_points_x, &mut d_points_y, &mut d_vanishing, n_points as usize, points_per_thread)?;
     let poly1_degree = points_x.len() - 1;
-    println!("Lagrang interpolate: {:?}", start.elapsed());
+    println!("Lagrange interpolate: {:?}", start.elapsed());
 
     let start = Instant::now();
     let mut d_poly2 = gpu_generate_random_polynomial(&ctx, (final_degree - poly1_degree as u32 - 1) as usize).expect("random poly generation failed");
