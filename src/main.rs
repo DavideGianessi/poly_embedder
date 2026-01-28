@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("generate_vanishing_polynomial: {:?}", start.elapsed());
 
     let start = Instant::now();
-    let points_per_thread = 8;
+    let points_per_thread = 16;
     let mut d_poly1 = gpu_lagrange_interpolate(&ctx,  &mut d_points_x, &mut d_points_y, &mut d_vanishing, n_points as usize, points_per_thread)?;
     let poly1_degree = points_x.len() - 1;
     println!("Lagrang interpolate: {:?}", start.elapsed());
