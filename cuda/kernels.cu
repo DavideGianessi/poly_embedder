@@ -188,7 +188,7 @@ extern "C" __global__ void bit_reverse_staggered(
     uint32_t rev_j = __brev(j) >> (32 - 5);
     uint32_t rev_mbits = __brev(mbits) >> (32 - mbits_count);
 
-    uint32_t write_addr = (rev_j << high_shift) | (rev_mbits << mbits_shift) | rev_i;
+    uint32_t write_addr = (rev_i << high_shift) | (rev_mbits << mbits_shift) | rev_j;
 
     output[write_addr] = transposed_val;
 }
