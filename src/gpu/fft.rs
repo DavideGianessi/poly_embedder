@@ -73,15 +73,31 @@ fn bit_reverse(
     log_n: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let stream = &ctx.stream;
-    let bit_rev_kernel = ctx.module.get_function(CStr::from_bytes_with_nul(b"bit_reverse\0")?)?;
-    let block_size = 256u32;
-    let grid_size = (n as u32 + block_size - 1) / block_size;
-    unsafe {
-        launch!(bit_rev_kernel<<<grid_size, block_size, 0, stream>>>(
-            data.as_device_ptr(),
-            n as u32,
-            log_n as u32
-        ))?;
+    if n>=1024 {
+        let mut tmp = unsafe { DeviceBuffer::zeroed(n)? };
+        let bit_rev_kernel = ctx.module.get_function(CStr::from_bytes_with_nul(b"bit_reverse_staggered\0")?)?;
+        let block_size = 1024u32;
+        let grid_size = (n as u32 + block_size - 1) / block_size;
+        unsafe {
+            launch!(bit_rev_kernel<<<grid_size, block_size, 8192, stream>>>(
+                data.as_device_ptr(),
+                tmp.as_device_ptr(),
+                log_n as u32
+            ))?;
+        }
+        ctx.stream.synchronize()?;
+        data.copy_from(&tmp)?;
+    } else {
+        let bit_rev_kernel = ctx.module.get_function(CStr::from_bytes_with_nul(b"bit_reverse\0")?)?;
+        let block_size = 256u32;
+        let grid_size = (n as u32 + block_size - 1) / block_size;
+        unsafe {
+            launch!(bit_rev_kernel<<<grid_size, block_size, 0, stream>>>(
+                data.as_device_ptr(),
+                n as u32,
+                log_n as u32
+            ))?;
+        }
     }
     Ok(())
 }

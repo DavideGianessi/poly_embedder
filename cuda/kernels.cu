@@ -159,6 +159,39 @@ extern "C" __global__ void bit_reverse(uint32_t* data, uint32_t n, uint32_t bits
         data[j] = temp;
     }
 }
+extern "C" __global__ void bit_reverse_staggered(
+    const uint32_t* __restrict__ input,
+    uint32_t* __restrict__ output,
+    uint32_t log_n
+) {
+    __shared__ uint32_t shm[32][64];
+    const uint32_t tid = threadIdx.x;
+    const uint32_t i = tid >> 5;
+    const uint32_t j = tid & 31;
+    
+    const uint32_t mbits = blockIdx.x;
+    const uint32_t mbits_count = log_n - 10;
+    
+    const uint32_t high_shift = log_n - 5;
+    const uint32_t mbits_shift = 5;
+
+    uint32_t load_addr = (i << high_shift) | (mbits << mbits_shift) | j;
+    uint32_t val = input[load_addr];
+
+    shm[j][i + j] = val;
+
+    __syncthreads();
+
+    uint32_t transposed_val = shm[i][j + i];
+
+    uint32_t rev_i = __brev(i) >> (32 - 5);
+    uint32_t rev_j = __brev(j) >> (32 - 5);
+    uint32_t rev_mbits = __brev(mbits) >> (32 - mbits_count);
+
+    uint32_t write_addr = (rev_j << high_shift) | (rev_mbits << mbits_shift) | rev_i;
+
+    output[write_addr] = transposed_val;
+}
 extern "C" __global__ void ntt_block(
     uint32_t* data,
     const uint32_t* twiddles,
