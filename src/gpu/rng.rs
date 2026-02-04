@@ -32,6 +32,7 @@ pub fn gpu_generate_random_polynomial(
             P
         ))?;
     }
+    ctx.synchronize()?;
 
     Ok(d_poly)
 }
