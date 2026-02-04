@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Generate random polynomial: {:?}", start.elapsed());
 
     let start = Instant::now();
-    let mut d_extended_poly = gpu_fft_multiply(&ctx, &mut d_poly2, &mut d_vanishing).expect("gpu fft failed");
+    let mut d_extended_poly = gpu_fft_multiply(&ctx, &mut d_vanishing, &mut d_poly2).expect("gpu fft failed");
     println!("fft multiply: {:?}", start.elapsed());
 
     let start = Instant::now();
