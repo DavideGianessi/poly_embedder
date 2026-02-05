@@ -1,6 +1,5 @@
 use rustacuda::launch;
 use rustacuda::memory::DeviceBuffer;
-use rustacuda::memory::CopyDestination;
 use std::ffi::CStr;
 use crate::gpu::context::CudaContext;
 use crate::field::Fe;
