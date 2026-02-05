@@ -17,9 +17,11 @@ extern "C" __global__ void init_vanishing(
 extern "C" __global__ void generate_vanishing(
     const uint32_t* input_array,
     uint32_t* output_array,
-    int level
+    int level,
+    int n_padded
 ) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= 2*n_padded) return;
     int k = id & ((1<<(level+2))-1);
     int input_1 = id - k;
     int input_2 = input_1 + (1<<(level+1));

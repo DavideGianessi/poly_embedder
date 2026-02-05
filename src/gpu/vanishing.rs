@@ -44,7 +44,8 @@ pub fn gpu_generate_vanishing(
             launch!(vanishing_kernel<<<grid_size, block_size, 0, stream>>>(
                 src_ptr,
                 dst_ptr,
-                level as i32
+                level as i32,
+                n_padded as i32
             ))?;
             std::mem::swap(&mut src_ptr, &mut dst_ptr);
         }
