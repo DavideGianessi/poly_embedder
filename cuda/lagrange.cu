@@ -16,43 +16,95 @@ extern "C" __global__ void compute_weights(
     }
     weights[i] = fe_mul(points_y[i], fe_inv(denom));
 }
-extern "C" __global__ void lagrange_contribution_batched(
-    const uint32_t* vanishing_poly, 
-    const uint32_t* points_x,       
-    const uint32_t* weights,        
+extern "C" __global__ void lagrange_contribution_systolic(
+    const uint32_t* __restrict__ vanishing_poly, 
+    const uint32_t* __restrict__ points_x,       
+    const uint32_t* __restrict__ weights,        
     uint32_t* workspaces,
     int n,
-    int points_per_thread,
+    int n_padded,
     int num_workspaces
 ) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= num_workspaces) return;
-    uint32_t* my_poly = &workspaces[tid * n];
-    for (int j = 0; j < n; j++) {
-        my_poly[j] = 0;
+    const int lane = threadIdx.x & 31;
+    const int warp_id = (blockIdx.x * (blockDim.x / 32)) + (threadIdx.x / 32);
+    if (warp_id >= num_workspaces) return;
+    uint32_t* my_out = &workspaces[warp_id * n_padded];
+
+    const int point_idx = warp_id * 32 + lane;
+
+    uint32_t root = (point_idx < n) ? points_x[point_idx] : 0;
+    uint32_t weight = (point_idx < n) ? weights[point_idx] : 0;
+
+    uint32_t current = (n < n_padded) ? 0: vanishing_poly[n_padded];
+
+    uint32_t acc = 0;
+    uint32_t ready_acc = 0;
+    uint32_t vanish_coeff = 0;
+    int first_coeff_idx = n_padded - 32 + ((lane+31)&31);
+    if (first_coeff_idx <= n) {
+        vanish_coeff = vanishing_poly[first_coeff_idx];
     }
-    for (int p = 0; p < points_per_thread; p++) {
-        int point_idx = tid * points_per_thread + p;
-        
-        if (point_idx >= n) return;
 
-        uint32_t root = points_x[point_idx];
-        uint32_t w_i = weights[point_idx];
-
-        uint32_t current = vanishing_poly[n]; 
-        for (int j = n; j >= 1; j--) {
-            uint32_t contribution = fe_mul(current, w_i);
-            my_poly[j-1] = fe_add(my_poly[j-1], contribution);
-            if (j>0) {
-                current = fe_add(vanishing_poly[j-1], fe_mul(current, root));
-            }
+    for (int i = 0; i < 32; i++) {
+        if (lane <= i) {
+            acc = fe_add(acc, fe_mul(current, weight));
+            current = fe_add(vanish_coeff, fe_mul(current,root));
         }
+        acc       = __shfl_sync(0xffffffff, acc,       (lane + 31) & 31);
+        vanish_coeff    = __shfl_sync(0xffffffff, vanish_coeff,    (lane + 31) & 31);
+    }
+
+    for (int r = 1; 32 * r  < n_padded; r++) {
+        uint32_t next_vanish_coeff = vanishing_poly[n_padded - 32*(r+1) + ((lane+31)&31)];
+
+        for (int i = 0; i < 32; i++) {
+            if (lane == 0) {
+                ready_acc = acc;
+                acc = 0;
+                vanish_coeff = next_vanish_coeff;
+            }
+
+            acc = fe_add(acc, fe_mul(current, weight));
+            current = fe_add(vanish_coeff, fe_mul(current, root));
+
+            acc       = __shfl_sync(0xffffffff, acc,       (lane + 31) & 31);
+            ready_acc       = __shfl_sync(0xffffffff, ready_acc,       (lane + 31) & 31);
+            vanish_coeff    = __shfl_sync(0xffffffff, vanish_coeff,    (lane + 31) & 31);
+            next_vanish_coeff    = __shfl_sync(0xffffffff, next_vanish_coeff,    (lane + 31) & 31);
+        }
+
+        int write_idx = n_padded - (32 * (r - 1) + ((32 - lane) & 31)) - 1;
+        if (write_idx >= 0 && write_idx < n_padded) {
+            my_out[write_idx] = ready_acc;
+        }
+    }
+
+    int last_r = n_padded / 32;
+    for (int i = 0; i < 32; i++) {
+        if (lane == 0) {
+            ready_acc = acc;
+        }
+        
+        if (lane > i) {
+            acc = fe_add(acc, fe_mul(current, weight));
+            current = fe_add(vanish_coeff, fe_mul(current, root));
+        }
+
+        acc       = __shfl_sync(0xffffffff, acc,       (lane + 31) & 31);
+        ready_acc       = __shfl_sync(0xffffffff, ready_acc,       (lane + 31) & 31);
+        vanish_coeff    = __shfl_sync(0xffffffff, vanish_coeff,    (lane + 31) & 31);
+    }
+
+    int final_write_idx = n_padded - (32 * (last_r - 1) + ((32 - lane) & 31)) - 1;
+    if (final_write_idx >= 0 && final_write_idx < n_padded) {
+        my_out[final_write_idx] = ready_acc;
     }
 }
 extern "C" __global__ void sum_workspaces(
     const uint32_t* workspaces, 
     uint32_t* final_result,     
     int n,
+    int n_padded,
     int num_workspaces
 ) {
     int j = blockIdx.x * blockDim.x + threadIdx.x;
@@ -60,7 +112,7 @@ extern "C" __global__ void sum_workspaces(
 
     uint32_t sum = 0;
     for (int i = 0; i < num_workspaces; i++) {
-        sum = fe_add(sum, workspaces[i * n + j]);
+        sum = fe_add(sum, workspaces[i * n_padded + j]);
     }
     final_result[j] = sum;
 }
