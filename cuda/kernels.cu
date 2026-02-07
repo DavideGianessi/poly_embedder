@@ -134,18 +134,10 @@ extern "C" __global__ void pointwise_multiplication(
     if (idx >= n) return;
     result[idx] = fe_mul(poly1[idx], poly2[idx]);
 }
-__device__ uint32_t reverse_bits(uint32_t x, uint32_t bits) {
-    uint32_t res = 0;
-    for (int i = 0; i < bits; i++) {
-        res = (res << 1) | (x & 1);
-        x >>= 1;
-    }
-    return res;
-}
 extern "C" __global__ void bit_reverse(uint32_t* data, uint32_t n, uint32_t bits) {
     uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
-    uint32_t j = reverse_bits(i, bits);
+    uint32_t j = __brev(i) >> (32 - bits);
     if (i < j) {
         uint32_t temp = data[i];
         data[i] = data[j];
